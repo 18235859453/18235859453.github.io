@@ -1,17 +1,27 @@
-name: Deploy Hugo site to Pages
+name: Build and Deploy Hugo Site
 
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - '.nojekyll'
+      - '404.html'
+      - 'categories/**'
+      - 'page/**'
+      - 'posts/**'
+      - 'scss/**'
+      - 'tags/**'
+      - 'ts/**'
+      - 'index.html'
+      - 'index.xml'
+      - 'sitemap.xml'
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: "pages"
+  group: "hugo-deploy"
   cancel-in-progress: false
 
 defaults:
@@ -19,7 +29,7 @@ defaults:
     shell: bash
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
     env:
       HUGO_VERSION: 0.161.1
@@ -27,7 +37,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
 
       - name: Setup Hugo
@@ -36,11 +45,12 @@ jobs:
           hugo-version: ${{ env.HUGO_VERSION }}
           extended: true
 
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v4
+      - name: Clone theme
+        run: |
+          git clone --depth=1 https://github.com/CaiJimmy/hugo-theme-stack src/themes/hugo-theme-stack
 
       - name: Build with Hugo
+        working-directory: src
         env:
           HUGO_ENVIRONMENT: production
           HUGO_ENV: production
@@ -48,20 +58,16 @@ jobs:
           hugo \
             --gc \
             --minify \
-            --baseURL "${{ steps.pages.outputs.base_url }}/"
+            --baseURL "https://18235859453.github.io/"
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./public
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to root
+        run: |
+          rm -rf categories tags posts page index.html index.xml sitemap.xml 404.html scss ts
+          cp -r src/public/* .
+          rm -rf src/public/ src/themes/
+          echo "" > .nojekyll
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Auto-deploy: Hugo build $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
