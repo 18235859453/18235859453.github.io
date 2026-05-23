@@ -1,0 +1,33 @@
+baseURL = "https://18235859453.github.io/"
+locale = "zh-CN"
+title = "My Blog"
+theme = "hugo-theme-stack"
+
+[params]
+description = "个人博客"
+defaultTheme = "auto"
+
+[params.author]
+name = "Author"
+image = ""
+
+[params.footer]
+custom = ""
+
+[[menu.main]]
+identifier = "home"
+name = "首页"
+url = "/"
+weight = 10
+
+[[menu.main]]
+identifier = "archives"
+name = "归档"
+url = "/archives/"
+weight = 20
+
+[[menu.main]]
+identifier = "search"
+name = "搜索"
+url = "/search/"
+weight = 30
